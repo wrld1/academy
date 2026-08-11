@@ -22,7 +22,7 @@ function recDots(str, offset = 1, arr = [str[0]]) {
   return recDots(str, ++offset, arr);
 }
 
-function testDots(str, recursive = false) {
+function testDots({ str, recursive = false }) {
   const possibleCombinations = Math.pow(2, str.length - 1);
 
   const dotsResult = recursive ? recDots(str) : dots(str);
@@ -40,4 +40,4 @@ function testDots(str, recursive = false) {
   return result;
 }
 
-console.log(testDots("abc", true));
+console.log(testDots({ str: "abc", recursive: true }));
