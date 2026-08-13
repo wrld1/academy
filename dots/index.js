@@ -1,31 +1,19 @@
-function dots(str) {
-  let resArr = [str[0]];
-
-  for (let i = 1; i < str.length; i++) {
-    const dotsArr = resArr.map((item) => item + ".");
-
-    resArr = [...resArr, ...dotsArr].map((item) => item + str.charAt(i));
+function dots(str, val = str[0], index = 1, resArr = []) {
+  if (index === str.length) {
+    resArr.push(val);
+    return;
   }
+
+  dots(str, val + "." + str[index], index + 1, resArr);
+  dots(str, val + str[index], index + 1, resArr);
 
   return resArr;
 }
 
-function recDots(str, offset = 1, arr = [str[0]]) {
-  if (arr.length === Math.pow(2, str.length - 1)) {
-    return arr;
-  }
-
-  const dotsArr = arr.map((item) => item + ".");
-
-  arr = [...arr, ...dotsArr].map((item) => item + str.charAt(offset));
-
-  return recDots(str, ++offset, arr);
-}
-
-function testDots({ str, recursive = false }) {
+function testDots(str) {
   const possibleCombinations = Math.pow(2, str.length - 1);
 
-  const dotsResult = recursive ? recDots(str) : dots(str);
+  const dotsResult = dots(str);
 
   const uniqueResult = new Set(dotsResult);
 
@@ -40,4 +28,4 @@ function testDots({ str, recursive = false }) {
   return result;
 }
 
-console.log(testDots({ str: "abc", recursive: true }));
+console.log(testDots("aaaaaaaa"));
