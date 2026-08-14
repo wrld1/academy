@@ -18,7 +18,6 @@ function testDots(str) {
   const uniqueResult = new Set(dotsResult);
 
   console.log("dotsResult", dotsResult);
-  console.log("uniqueResult", uniqueResult);
 
   const result =
     uniqueResult.size === possibleCombinations
