@@ -1,4 +1,5 @@
 function dots(str, val = str[0], index = 1, resArr = []) {
+  if (str.length <= 1) return [str];
   if (index === str.length) {
     resArr.push(val);
     return;
@@ -27,4 +28,4 @@ function testDots(str) {
   return result;
 }
 
-console.log(testDots("aaaaaaaa"));
+console.log(testDots("a"));
