@@ -1,5 +1,6 @@
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { styleText } from "node:util";
 
 const choices = [
   "Sort the words alphabetically",
@@ -51,7 +52,10 @@ async function main() {
   try {
     while (true) {
       const words = await rl.question(
-        "Hello. Enter 10 digits or words separated by spaces (or type 'exit' to quit): ",
+        styleText(
+          "blue",
+          "Hello. Enter 10 digits or words separated by spaces (or type 'exit' to quit): ",
+        ),
       );
       if (words.trim().toLowerCase() === "exit") {
         console.log("Goodbye!");
