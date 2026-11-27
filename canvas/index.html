@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Academy Canvas</title>
+    <style>
+      body {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      #controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 240px;
+      }
+      #dropbox {
+        border: 2px dashed #666;
+        padding: 20px;
+        text-align: center;
+      }
+      #preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      #preview img {
+        max-width: 100px;
+        max-height: 100px;
+        object-fit: cover;
+        cursor: grab;
+      }
+      #image-input {
+        display: none;
+      }
+      canvas {
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <form id="text-form">
+        <input id="text-input" type="text" placeholder="Enter text" />
+        <button type="submit">Add</button>
+      </form>
+      <div id="preview"></div>
+      <input type="file" id="image-input" multiple accept="image/*" />
+      <button id="fileSelect" type="button">Select some files</button>
+      <div id="dropbox">Drop images here</div>
+    </div>
+
+    <canvas id="my-canvas" width="450" height="450"></canvas>
+    <script>
+      const canvas = document.getElementById("my-canvas");
+      const ctx = canvas.getContext("2d");
+      const textInput = document.getElementById("text-input");
+      const fileInput = document.getElementById("image-input");
+      const preview = document.getElementById("preview");
+      const dropbox = document.getElementById("dropbox");
+
+      const items = [];
+      let textY = 120;
+      let draggedImg = null;
+      let drag = null;
+
+      function prevent(e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+
+      function canvasPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      function hitTest(x, y) {
+        return items.findLast(
+          (it) =>
+            x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h,
+        );
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = "20px sans-serif";
+        ctx.textBaseline = "top";
+        for (const it of items) {
+          if (it.type === "text") ctx.fillText(it.text, it.x, it.y);
+          else ctx.drawImage(it.img, it.x, it.y, it.w, it.h);
+        }
+      }
+
+      function addText(text, x, y, centered = false) {
+        ctx.font = "20px sans-serif";
+        const w = ctx.measureText(text).width;
+        const h = 20;
+        items.push({
+          type: "text",
+          text,
+          x: centered ? x - w / 2 : x,
+          y: centered ? y - h / 2 : y,
+          w,
+          h,
+        });
+        draw();
+      }
+
+      function addImage(img, x, y) {
+        const scale = Math.min(
+          1,
+          150 / img.naturalWidth,
+          150 / img.naturalHeight,
+        );
+        const w = img.naturalWidth * scale;
+        const h = img.naturalHeight * scale;
+        items.push({ type: "image", img, x: x - w / 2, y: y - h / 2, w, h });
+        draw();
+      }
+
+      function handleFiles(files) {
+        for (const file of files) {
+          if (!file.type.startsWith("image/")) continue;
+
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(file);
+          img.draggable = true;
+          img.addEventListener("dragstart", (e) => {
+            draggedImg = img;
+            e.dataTransfer.setData("text/plain", "");
+          });
+          preview.appendChild(img);
+        }
+      }
+
+      document.getElementById("text-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = textInput.value.trim();
+        if (!text) return;
+
+        addText(text, 20, textY);
+        textY += 28;
+        textInput.value = "";
+      });
+
+      document
+        .getElementById("fileSelect")
+        .addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", () => handleFiles(fileInput.files));
+
+      dropbox.addEventListener("dragenter", prevent);
+      dropbox.addEventListener("dragover", prevent);
+      dropbox.addEventListener("drop", (e) => {
+        prevent(e);
+        handleFiles(e.dataTransfer.files);
+      });
+
+      canvas.addEventListener("dragenter", prevent);
+      canvas.addEventListener("dragover", prevent);
+      canvas.addEventListener("drop", (e) => {
+        prevent(e);
+        const { x, y } = canvasPos(e);
+
+        if (draggedImg) {
+          addImage(draggedImg, x, y);
+          draggedImg = null;
+          return;
+        }
+
+        if (e.dataTransfer.files.length) {
+          for (const file of e.dataTransfer.files) {
+            if (!file.type.startsWith("image/")) continue;
+            const img = new Image();
+            img.onload = () => addImage(img, x, y);
+            img.src = URL.createObjectURL(file);
+          }
+          return;
+        }
+
+        const text = e.dataTransfer.getData("text/plain").trim();
+        if (text) addText(text, x, y, true);
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        const { x, y } = canvasPos(e);
+        const item = hitTest(x, y);
+        if (!item) return;
+
+        items.splice(items.indexOf(item), 1);
+        items.push(item);
+        drag = { item, offsetX: x - item.x, offsetY: y - item.y };
+        canvas.style.cursor = "grabbing";
+        draw();
+      });
+
+      canvas.addEventListener("mousemove", (e) => {
+        const { x, y } = canvasPos(e);
+        if (drag) {
+          drag.item.x = x - drag.offsetX;
+          drag.item.y = y - drag.offsetY;
+          draw();
+        } else {
+          canvas.style.cursor = hitTest(x, y) ? "grab" : "default";
+        }
+      });
+
+      window.addEventListener("dragend", () => (draggedImg = null));
+      window.addEventListener("mouseup", () => {
+        if (!drag) return;
+        drag = null;
+        canvas.style.cursor = "default";
+      });
+
+      draw();
+    </script>
+  </body>
+</html>
